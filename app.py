@@ -5,14 +5,16 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 import psycopg2
 from psycopg2.extras import DictCursor
 
+# --- Render 환경변수 설정 ---
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'chosun_secure_final')
+# 세션 암호화를 위해 비밀키를 사용
+app.secret_key = os.environ.get('SECRET_KEY')
+# DB에 접속하기 위한 주소를 환경변수로 설정
 DATABASE_URL = os.environ.get('DATABASE_URL')
-
-# Cloudinary 설정
+# Cloudinary 접속 주소를 환경변수로 설정
 cloudinary.config(cloudinary_url=os.environ.get('CLOUDINARY_URL'))
 
-# 과목 리스트 정의
+# 운영할 과목 리스트 정의
 SUBJECTS = {
     'computer_networks': '컴퓨터네트워크',
     'deep_learning': '딥러닝기초',
@@ -22,19 +24,22 @@ SUBJECTS = {
 }
 
 # --- DB 연결 함수 ---
+# DB랑 통신하기 위해 Flask의 임시 보관소 변수 g를 이용, g에 db가 있으면 그대로 리턴하고, 없으면 db를 딕셔너리 형태로 가져온다.
 def get_db():
     if not hasattr(g, '_database'):
         g._database = psycopg2.connect(DATABASE_URL, cursor_factory=DictCursor)
     return g._database
 
+# 사용자의 요청이 끝날때, g를 닫아준다.
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None: db.close()
 
-# --- 포인트 및 정보 인젝터 ---
+# HTML 렌더링 전, 실행되는 함수
+# 여기서 HTML의 모든 화면에 공통 변수를 주입한다. ( 현재 = 유저 포인트, 과목 )
 @app.context_processor
-def inject_user_info():
+def inject_global_var():
     if 'user_id' in session:
         db = get_db(); c = db.cursor()
         c.execute("SELECT points FROM users WHERE id=%s", (session['user_id'],))
@@ -42,7 +47,7 @@ def inject_user_info():
         return dict(points=row['points'] if row else 0, SUBJECTS=SUBJECTS)
     return dict(points=0, SUBJECTS=SUBJECTS)
 
-# --- 공통 레이아웃 (타이틀 링크 및 설명 수정) ---
+# HTML 뼈대
 BASE_HTML = '''
 <!DOCTYPE html>
 <html>
@@ -95,20 +100,21 @@ BASE_HTML = '''
 </html>
 '''
 
+# HTML 렌더링
 def render(block_content, **kwargs):
     return render_template_string(BASE_HTML.replace('{% block content %}{% endblock %}', block_content), **kwargs)
 
-# --- 라우팅 (과목명만 노출되도록 수정) ---
 
+# 홈 화면
 @app.route('/')
 def index():
-    html = '<h2 style="text-align:center; color:#555; margin-bottom:30px;">수강 과목을 선택하세요</h2>'
-    html += '<div class="subject-container">'
+    html = '<h2 style="text-align:center; color:#555; margin-bottom:30px;">수강 과목을 선택하세요</h2><div class="subject-container">'
     for code, name in SUBJECTS.items():
         html += f'<div class="subject-card" onclick="location.href=\'/subject/{code}\'"><h3>{name}</h3></div>'
     html += '</div>'
     return render(html)
 
+# 과목 세부 게시판
 @app.route('/subject/<sub_code>')
 def subject_home(sub_code):
     sub_name = SUBJECTS.get(sub_code)
@@ -129,8 +135,7 @@ def subject_home(sub_code):
     '''
     return render(html)
 
-# --- [자료실/Q&A 로직은 이전과 동일하되 URL 처리 유지] ---
-
+# 공부 자료실
 @app.route('/subject/<sub_code>/materials')
 def material_list(sub_code):
     db = get_db(); c = db.cursor()
@@ -212,7 +217,7 @@ def material_view(m_id):
     </div>
     ''')
 
-# --- 새로 추가되는 삭제 라우팅 ---
+# 삭제 메소드
 @app.route('/materials/delete/<int:m_id>', methods=['POST'])
 def material_delete(m_id):
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -235,6 +240,7 @@ def material_delete(m_id):
     flash("자료가 성공적으로 삭제되었습니다.")
     return redirect(url_for('material_list', sub_code=m['subject']))
 
+# QnA 게시판
 @app.route('/subject/<sub_code>/qna')
 def qna_list(sub_code):
     db = get_db(); c = db.cursor()
@@ -242,7 +248,7 @@ def qna_list(sub_code):
     qs = c.fetchall()
     html = f'<h2>{SUBJECTS[sub_code]} Q&A</h2><a href="/subject/{sub_code}/qna/ask" class="btn" style="background:#e67e22;">질문 등록하기</a><hr style="border:0; border-top:1px solid #eee; margin:20px 0;">'
     for q in qs:
-        status = "✅ 채택완료" if q['resolved'] else "답변 대기중"
+        status = "채택완료" if q['resolved'] else "답변 대기중"
         html += f'<div class="card"><h3><a href="/qna/view/{q["id"]}" style="text-decoration:none; color:#333;">{q["title"]}</a> <span style="color:#d9534f; font-size:0.8em;">(+{q["bounty"]}P)</span></h3><p style="color:#777;">{status} | 작성자: {q["username"]}</p></div>'
     return render(html)
 
