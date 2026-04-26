@@ -1,7 +1,7 @@
 import os
 import cloudinary
 import cloudinary.uploader
-from flask import Flask, render_template_string, request, redirect, url_for, session, g, flash
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash
 import psycopg2
 from psycopg2.extras import DictCursor
 
@@ -47,93 +47,18 @@ def inject_global_var():
         return dict(points=row['points'] if row else 0, SUBJECTS=SUBJECTS)
     return dict(points=0, SUBJECTS=SUBJECTS)
 
-# HTML 뼈대
-BASE_HTML = '''
-<!DOCTYPE html>
-<html>
-<head>
-    <title>StudyChosun</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f9f9f9; color: #333; }
-        .header { background: #004b87; color: white; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 25px; }
-        .header a { text-decoration: none; color: white; }
-        .header h1 { margin: 0; font-size: 2.5em; letter-spacing: -1px; }
-        .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 1.1em; }
-        
-        .nav { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
-        .nav a { text-decoration: none; color: #555; font-weight: bold; font-size: 0.95em; }
-        .nav a:hover { color: #004b87; }
-        
-        .subject-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
-        .subject-card { width: calc(33% - 20px); background: white; padding: 40px 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; cursor: pointer; transition: all 0.3s ease; border: 1px solid #eee; }
-        .subject-card:hover { transform: translateY(-8px); border-color: #004b87; box-shadow: 0 8px 25px rgba(0,75,135,0.15); }
-        .subject-card h3 { margin: 0; color: #004b87; font-size: 1.3em; }
-        
-        .card { background: white; border: 1px solid #eee; padding: 25px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-        .btn { padding: 12px 24px; background: #004b87; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: bold; transition: background 0.2s; }
-        .btn:hover { background: #003663; }
-        
-        pre { background: #f4f4f4; padding: 15px; border-radius: 5px; font-family: inherit; font-size: 1em; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <a href="/"><h1>StudyChosun</h1></a>
-        <p>조선대학교 공부 커뮤니티</p>
-    </div>
-    <div class="nav">
-        <a href="/">홈 (과목선택)</a>
-        <div>
-        {% if session.user_id %}
-            <span style="margin-right:15px;"><b>{{ session.username }}</b>님 ({{ points }} P)</span>
-            <a href="/logout" style="color:#d9534f;">로그아웃</a>
-        {% else %}
-            <a href="/login">로그인 / 회원가입</a>
-        {% endif %}
-        </div>
-    </div>
-    {% with messages = get_flashed_messages() %}{% if messages %}
-        {% for message in messages %}<div style="color:#d9534f; background:#fdf7f7; padding:10px; border-radius:5px; margin-bottom:20px; border:1px solid #eed3d7;">{{ message }}</div>{% endfor %}
-    {% endif %}{% endwith %}
-    {% block content %}{% endblock %}
-</body>
-</html>
-'''
-
-# HTML 렌더링
-def render(block_content, **kwargs):
-    return render_template_string(BASE_HTML.replace('{% block content %}{% endblock %}', block_content), **kwargs)
-
+# --- 컨트롤러 로직 (기존 HTML 뼈대 및 렌더링 함수는 render_template으로 대체됨) ---
 
 # 홈 화면
 @app.route('/')
 def index():
-    html = '<h2 style="text-align:center; color:#555; margin-bottom:30px;">수강 과목을 선택하세요</h2><div class="subject-container">'
-    for code, name in SUBJECTS.items():
-        html += f'<div class="subject-card" onclick="location.href=\'/subject/{code}\'"><h3>{name}</h3></div>'
-    html += '</div>'
-    return render(html)
+    return render_template('index.html')
 
 # 과목 세부 게시판
 @app.route('/subject/<sub_code>')
 def subject_home(sub_code):
     sub_name = SUBJECTS.get(sub_code)
-    html = f'''
-    <h2 style="margin-top:0;">{sub_name}</h2>
-    <div style="display:flex; gap:20px; margin-top:30px;">
-        <div class="card" style="flex:1; text-align:center;">
-            <h3>질문과 답변</h3>
-            <p>모르는 문제를 물어보고 포인트를 획득하세요.</p>
-            <a href="/subject/{sub_code}/qna" class="btn" style="background:#e67e22; width:80%;">Q&A 입장</a>
-        </div>
-        <div class="card" style="flex:1; text-align:center;">
-            <h3>자료 공유</h3>
-            <p>정리 노트를 공유하고 기여 보상을 받으세요.</p>
-            <a href="/subject/{sub_code}/materials" class="btn" style="background:#27ae60; width:80%;">자료실 입장</a>
-        </div>
-    </div>
-    '''
-    return render(html)
+    return render_template('subject.html', sub_code=sub_code, sub_name=sub_name)
 
 # 공부 자료실
 @app.route('/subject/<sub_code>/materials')
@@ -141,11 +66,7 @@ def material_list(sub_code):
     db = get_db(); c = db.cursor()
     c.execute("SELECT m.*, u.username FROM materials m JOIN users u ON m.author_id = u.id WHERE m.subject=%s ORDER BY m.id DESC", (sub_code,))
     mats = c.fetchall()
-    html = f'<h2>{SUBJECTS[sub_code]} 자료실</h2><a href="/subject/{sub_code}/materials/upload" class="btn">자료 업로드 (+20P 보상)</a><hr style="border:0; border-top:1px solid #eee; margin:20px 0;">'
-    for m in mats:
-        html += f'<div class="card"><h3>{m["title"]}</h3><p style="color:#777;">작성자: {m["username"]} | 열람료: 10P</p>'
-        html += f'<a href="/materials/view/{m["id"]}" class="btn">자료 열람하기</a></div>'
-    return render(html)
+    return render_template('material_list.html', sub_code=sub_code, mats=mats)
 
 @app.route('/subject/<sub_code>/materials/upload', methods=['GET', 'POST'])
 def material_upload(sub_code):
@@ -163,11 +84,7 @@ def material_upload(sub_code):
         c.execute("UPDATE users SET points = points + 20 WHERE id=%s", (session['user_id'],))
         db.commit()
         flash("자료가 등록되었습니다. 보상으로 20P가 지급되었습니다!"); return redirect(url_for('material_list', sub_code=sub_code))
-    return render(f'''<h2>{SUBJECTS[sub_code]} 자료 등록</h2><form method="post" enctype="multipart/form-data" class="card">
-        제목: <input type="text" name="title" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required><br><br>
-        설명: <textarea name="content" rows="8" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required></textarea><br><br>
-        파일 첨부 (이미지/문서): <input type="file" name="files" multiple><br><br>
-        <button type="submit" class="btn">자료 등록 완료</button></form>''')
+    return render_template('material_upload.html', sub_code=sub_code)
 
 @app.route('/materials/view/<int:m_id>')
 def material_view(m_id):
@@ -189,33 +106,12 @@ def material_view(m_id):
         
     c.execute("SELECT * FROM material_files WHERE material_id=%s", (m_id,))
     files = c.fetchall()
-    file_html = ""
+    
+    # 이미지 여부 판별 로직 추가 (프론트엔드 노출용)
     for f in files:
-        if f['file_url'].lower().endswith(('jpg', 'jpeg', 'png', 'gif')):
-            file_html += f'<img src="{f["file_url"]}" style="max-width:100%; margin-top:20px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1);"><br>'
-        else:
-            file_html += f'<div style="margin-top:15px;"><a href="{f["file_url"]}" target="_blank" class="btn" style="background:#555;">첨부파일 다운로드: {f["filename"]}</a></div>'
+        f['is_image'] = f['file_url'].lower().endswith(('jpg', 'jpeg', 'png', 'gif'))
             
-    # 본인이 작성한 글일 경우에만 삭제 버튼 노출
-    delete_btn = ""
-    if m['author_id'] == session['user_id']:
-        delete_btn = f'''
-        <form method="post" action="/materials/delete/{m_id}" style="display:inline; float:right;" onsubmit="return confirm('정말로 이 자료를 삭제하시겠습니까?');">
-            <button type="submit" class="btn" style="background:#d9534f; padding:8px 16px;">자료 삭제</button>
-        </form>
-        '''
-            
-    return render(f'''
-    <div style="overflow:hidden; margin-bottom:15px;">
-        <h2 style="float:left; margin:0;">{m["title"]}</h2>
-        {delete_btn}
-    </div>
-    <div class="card"><pre>{m["content"]}</pre></div>
-    <div class="card"><h4>첨부 자료</h4>{file_html}</div>
-    <div style="margin-top:20px;">
-        <a href="/subject/{m["subject"]}/materials" class="btn" style="background:#777;">목록으로 돌아가기</a>
-    </div>
-    ''')
+    return render_template('material_view.html', m=m, files=files)
 
 # 삭제 메소드
 @app.route('/materials/delete/<int:m_id>', methods=['POST'])
@@ -246,11 +142,7 @@ def qna_list(sub_code):
     db = get_db(); c = db.cursor()
     c.execute("SELECT q.*, u.username FROM qna q JOIN users u ON q.author_id = u.id WHERE q.subject=%s ORDER BY q.id DESC", (sub_code,))
     qs = c.fetchall()
-    html = f'<h2>{SUBJECTS[sub_code]} Q&A</h2><a href="/subject/{sub_code}/qna/ask" class="btn" style="background:#e67e22;">질문 등록하기</a><hr style="border:0; border-top:1px solid #eee; margin:20px 0;">'
-    for q in qs:
-        status = "채택완료" if q['resolved'] else "답변 대기중"
-        html += f'<div class="card"><h3><a href="/qna/view/{q["id"]}" style="text-decoration:none; color:#333;">{q["title"]}</a> <span style="color:#d9534f; font-size:0.8em;">(+{q["bounty"]}P)</span></h3><p style="color:#777;">{status} | 작성자: {q["username"]}</p></div>'
-    return render(html)
+    return render_template('qna_list.html', sub_code=sub_code, qs=qs)
 
 @app.route('/subject/<sub_code>/qna/ask', methods=['GET', 'POST'])
 def qna_ask(sub_code):
@@ -263,7 +155,7 @@ def qna_ask(sub_code):
         c.execute("INSERT INTO qna (subject, title, content, bounty, author_id) VALUES (%s, %s, %s, %s, %s)", (sub_code, request.form['title'], request.form['content'], bounty, session['user_id']))
         c.execute("UPDATE users SET points = points - %s WHERE id=%s", (bounty, session['user_id']))
         db.commit(); return redirect(url_for('qna_list', sub_code=sub_code))
-    return render(f'<h2>질문 등록</h2><form method="post" class="card">제목: <input type="text" name="title" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required><br><br>내용: <textarea name="content" rows="8" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required></textarea><br><br>추가 현상금: <input type="number" name="bounty" value="0" min="0"> P<br><br><button type="submit" class="btn" style="background:#e67e22;">질문 올리기</button></form>')
+    return render_template('qna_ask.html', sub_code=sub_code)
 
 @app.route('/qna/view/<int:q_id>', methods=['GET', 'POST'])
 def qna_view(q_id):
@@ -289,39 +181,7 @@ def qna_view(q_id):
     c.execute("SELECT q.*, u.username FROM qna q JOIN users u ON q.author_id = u.id WHERE q.id=%s", (q_id,)); q = c.fetchone()
     c.execute("SELECT a.*, u.username FROM answers a JOIN users u ON a.author_id = u.id WHERE a.qna_id=%s ORDER BY a.id ASC", (q_id,)); answers = c.fetchall()
     
-    # 1. 질문 삭제 버튼 (내 글이고, 달린 답변이 0개일 때만 노출)
-    q_delete_btn = ""
-    if q['author_id'] == session.get('user_id') and len(answers) == 0:
-        q_delete_btn = f'''
-        <form method="post" action="/qna/delete/{q_id}" style="display:inline; float:right;" onsubmit="return confirm('이 질문을 삭제하시겠습니까?\\n(걸었던 현상금은 반환됩니다)');">
-            <button type="submit" class="btn" style="background:#d9534f; padding:6px 16px;">질문 삭제</button>
-        </form>
-        '''
-
-    html = f'<div style="overflow:hidden; margin-bottom:15px;"><h2 style="float:left; margin:0;">{q["title"]} <span style="color:#d9534f;">(+{q["bounty"]}P)</span></h2>{q_delete_btn}</div><div class="card"><pre>{q["content"]}</pre></div><h3>답변</h3>'
-    
-    for a in answers:
-        style = "border: 2px solid #004b87; background: #f0f7ff;" if a['accepted'] else ""
-        
-        # 채택하기 버튼
-        accept_btn = f'<a href="/qna/accept/{a["id"]}" class="btn" style="background:#28a745; font-size:0.8em; margin-top:10px; margin-right:5px;">채택하기</a>' if q['author_id'] == session.get('user_id') and not q['resolved'] else ""
-        
-        # 2. 답변 삭제 버튼 (내 답변이고, 아직 채택되지 않았을 때만 노출)
-        a_delete_btn = ""
-        if a['author_id'] == session.get('user_id') and not a['accepted']:
-            a_delete_btn = f'''
-            <form method="post" action="/answers/delete/{a["id"]}" style="display:inline;" onsubmit="return confirm('이 답변을 삭제하시겠습니까?');">
-                <button type="submit" class="btn" style="background:#d9534f; font-size:0.8em; padding:10px 16px; margin-top:10px;">삭제</button>
-            </form>
-            '''
-
-        html += f'<div class="card" style="{style}"><b>{a["username"]}</b><p>{a["content"]}</p>{accept_btn}{a_delete_btn}</div>'
-        
-    if 'user_id' in session and q['author_id'] != session['user_id']:
-        html += '<form method="post" class="card"><h4>답변 남기기</h4><textarea name="content" rows="4" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" placeholder="답변을 남겨주세요. (최초 1회 참여 시 5P 지급)"></textarea><br><button class="btn">답변 등록</button></form>'
-        
-    html += f'<div style="margin-top:20px;"><a href="/subject/{q["subject"]}/qna" class="btn" style="background:#777;">목록으로 돌아가기</a></div>'
-    return render(html)
+    return render_template('qna_view.html', q=q, answers=answers)
     
 @app.route('/qna/delete/<int:q_id>', methods=['POST'])
 def qna_delete(q_id):
@@ -393,11 +253,7 @@ def login():
             u = c.fetchone()
             if u: session['user_id'], session['username'] = u['id'], u['username']; return redirect(url_for('index'))
             flash("아이디 또는 비밀번호가 틀립니다.")
-    return render('''<div style="max-width:400px; margin:0 auto;"><h2>로그인 / 회원가입</h2><form method="post" class="card">
-        아이디: <input type="text" name="username" style="width:90%; padding:8px; margin-bottom:10px;" required><br>
-        비밀번호: <input type="password" name="password" style="width:90%; padding:8px; margin-bottom:20px;" required><br>
-        <button type="submit" name="action" value="login" class="btn" style="width:100%; margin-bottom:10px;">로그인</button>
-        <button type="submit" name="action" value="register" class="btn" style="width:100%; background:#28a745;">회원가입</button></form></div>''')
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('index'))

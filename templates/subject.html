@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="margin-top:0;">{{ sub_name }}</h2>
+<div style="display:flex; gap:20px; margin-top:30px;">
+    <div class="card" style="flex:1; text-align:center;">
+        <h3>질문과 답변</h3>
+        <p>모르는 문제를 물어보고 포인트를 획득하세요.</p>
+        <a href="/subject/{{ sub_code }}/qna" class="btn" style="background:#e67e22; width:80%;">Q&A 입장</a>
+    </div>
+    <div class="card" style="flex:1; text-align:center;">
+        <h3>자료 공유</h3>
+        <p>정리 노트를 공유하고 기여 보상을 받으세요.</p>
+        <a href="/subject/{{ sub_code }}/materials" class="btn" style="background:#27ae60; width:80%;">자료실 입장</a>
+    </div>
+</div>
+{% endblock %}

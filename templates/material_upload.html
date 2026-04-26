@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ SUBJECTS[sub_code] }} 자료 등록</h2>
+<form method="post" enctype="multipart/form-data" class="card">
+    제목: <input type="text" name="title" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required><br><br>
+    설명: <textarea name="content" rows="8" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required></textarea><br><br>
+    파일 첨부 (이미지/문서): <input type="file" name="files" multiple><br><br>
+    <button type="submit" class="btn">자료 등록 완료</button>
+</form>
+{% endblock %}

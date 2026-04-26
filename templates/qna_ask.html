@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>질문 등록</h2>
+<form method="post" class="card">
+    제목: <input type="text" name="title" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required><br><br>
+    내용: <textarea name="content" rows="8" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" required></textarea><br><br>
+    추가 현상금: <input type="number" name="bounty" value="0" min="0"> P<br><br>
+    <button type="submit" class="btn" style="background:#e67e22;">질문 올리기</button>
+</form>
+{% endblock %}

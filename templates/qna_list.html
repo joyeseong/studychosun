@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ SUBJECTS[sub_code] }} Q&A</h2>
+<a href="/subject/{{ sub_code }}/qna/ask" class="btn" style="background:#e67e22;">질문 등록하기</a>
+<hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+{% for q in qs %}
+    <div class="card">
+        <h3>
+            <a href="/qna/view/{{ q.id }}" style="text-decoration:none; color:#333;">{{ q.title }}</a> 
+            <span style="color:#d9534f; font-size:0.8em;">(+{{ q.bounty }}P)</span>
+        </h3>
+        <p style="color:#777;">
+            {% if q.resolved %}채택완료! {% else %}답변 대기중{% endif %} | 작성자: {{ q.username }}
+        </p>
+    </div>
+{% endfor %}
+{% endblock %}

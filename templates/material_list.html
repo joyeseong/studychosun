@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ SUBJECTS[sub_code] }} 자료실</h2>
+<a href="/subject/{{ sub_code }}/materials/upload" class="btn">자료 업로드 (+20P 보상)</a>
+<hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+{% for m in mats %}
+    <div class="card">
+        <h3>{{ m.title }}</h3>
+        <p style="color:#777;">작성자: {{ m.username }} | 열람료: 10P</p>
+        <a href="/materials/view/{{ m.id }}" class="btn">자료 열람하기</a>
+    </div>
+{% endfor %}
+{% endblock %}

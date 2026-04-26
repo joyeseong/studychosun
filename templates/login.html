@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:400px; margin:0 auto;">
+    <h2>로그인 / 회원가입</h2>
+    <form method="post" class="card">
+        아이디: <input type="text" name="username" style="width:90%; padding:8px; margin-bottom:10px;" required><br>
+        비밀번호: <input type="password" name="password" style="width:90%; padding:8px; margin-bottom:20px;" required><br>
+        <button type="submit" name="action" value="login" class="btn" style="width:100%; margin-bottom:10px;">로그인</button>
+        <button type="submit" name="action" value="register" class="btn" style="width:100%; background:#28a745;">회원가입</button>
+    </form>
+</div>
+{% endblock %}

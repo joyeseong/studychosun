@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="overflow:hidden; margin-bottom:15px;">
+    <h2 style="float:left; margin:0;">{{ q.title }} <span style="color:#d9534f;">(+{{ q.bounty }}P)</span></h2>
+    {% if q.author_id == session.user_id and answers|length == 0 %}
+    <form method="post" action="/qna/delete/{{ q.id }}" style="display:inline; float:right;" onsubmit="return confirm('이 질문을 삭제하시겠습니까?\n(걸었던 현상금은 반환됩니다)');">
+        <button type="submit" class="btn" style="background:#d9534f; padding:6px 16px;">질문 삭제</button>
+    </form>
+    {% endif %}
+</div>
+<div class="card"><pre>{{ q.content }}</pre></div>
+<h3>답변</h3>
+{% for a in answers %}
+    {% set style = "border: 2px solid #004b87; background: #f0f7ff;" if a.accepted else "" %}
+    <div class="card" style="{{ style }}">
+        <b>{{ a.username }}</b><p>{{ a.content }}</p>
+        {% if q.author_id == session.user_id and not q.resolved %}
+            <a href="/qna/accept/{{ a.id }}" class="btn" style="background:#28a745; font-size:0.8em; margin-top:10px; margin-right:5px;">채택하기</a>
+        {% endif %}
+        {% if a.author_id == session.user_id and not a.accepted %}
+            <form method="post" action="/answers/delete/{{ a.id }}" style="display:inline;" onsubmit="return confirm('이 답변을 삭제하시겠습니까?');">
+                <button type="submit" class="btn" style="background:#d9534f; font-size:0.8em; padding:10px 16px; margin-top:10px;">삭제</button>
+            </form>
+        {% endif %}
+    </div>
+{% endfor %}
+
+{% if session.user_id and q.author_id != session.user_id %}
+    <form method="post" class="card">
+        <h4>답변 남기기</h4>
+        <textarea name="content" rows="4" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" placeholder="답변을 남겨주세요. (최초 1회 참여 시 5P 지급)"></textarea><br>
+        <button class="btn">답변 등록</button>
+    </form>
+{% endif %}
+
+<div style="margin-top:20px;">
+    <a href="/subject/{{ q.subject }}/qna" class="btn" style="background:#777;">목록으로 돌아가기</a>
+</div>
+{% endblock %}

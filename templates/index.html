@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="text-align:center; color:#555; margin-bottom:30px;">수강 과목을 선택하세요</h2>
+<div class="subject-container">
+    {% for code, name in SUBJECTS.items() %}
+        <div class="subject-card" onclick="location.href='/subject/{{ code }}'"><h3>{{ name }}</h3></div>
+    {% endfor %}
+</div>
+{% endblock %}
