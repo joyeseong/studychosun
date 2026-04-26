@@ -268,20 +268,105 @@ def qna_ask(sub_code):
 @app.route('/qna/view/<int:q_id>', methods=['GET', 'POST'])
 def qna_view(q_id):
     db = get_db(); c = db.cursor()
+    
     if request.method == 'POST' and 'user_id' in session:
+        # 중복 답변 체크 (이 질문에 이미 답변을 단 적이 있는지 확인)
+        c.execute("SELECT COUNT(*) as cnt FROM answers WHERE qna_id=%s AND author_id=%s", (q_id, session['user_id']))
+        already_answered = c.fetchone()['cnt'] > 0
+        
         c.execute("INSERT INTO answers (qna_id, content, author_id) VALUES (%s, %s, %s)", (q_id, request.form['content'], session['user_id']))
-        c.execute("UPDATE users SET points = points + 5 WHERE id=%s", (session['user_id'],))
-        db.commit(); flash("답변 참여 보상 5P가 지급되었습니다!"); return redirect(request.url)
+        
+        # 첫 답변일 때만 포인트 지급
+        if not already_answered:
+            c.execute("UPDATE users SET points = points + 5 WHERE id=%s", (session['user_id'],))
+            flash("답변 등록 완료! 첫 답변 보상 5P가 지급되었습니다.")
+        else:
+            flash("답변이 추가로 등록되었습니다. (참여 보상은 질문당 1회만 지급됩니다)")
+            
+        db.commit()
+        return redirect(request.url)
+
     c.execute("SELECT q.*, u.username FROM qna q JOIN users u ON q.author_id = u.id WHERE q.id=%s", (q_id,)); q = c.fetchone()
     c.execute("SELECT a.*, u.username FROM answers a JOIN users u ON a.author_id = u.id WHERE a.qna_id=%s ORDER BY a.id ASC", (q_id,)); answers = c.fetchall()
-    html = f'<h2>{q["title"]} <span style="color:#d9534f;">(+{q["bounty"]}P)</span></h2><div class="card"><pre>{q["content"]}</pre></div><h3>답변</h3>'
+    
+    # 1. 질문 삭제 버튼 (내 글이고, 달린 답변이 0개일 때만 노출)
+    q_delete_btn = ""
+    if q['author_id'] == session.get('user_id') and len(answers) == 0:
+        q_delete_btn = f'''
+        <form method="post" action="/qna/delete/{q_id}" style="display:inline; float:right;" onsubmit="return confirm('이 질문을 삭제하시겠습니까?\\n(걸었던 현상금은 반환됩니다)');">
+            <button type="submit" class="btn" style="background:#d9534f; padding:6px 16px;">질문 삭제</button>
+        </form>
+        '''
+
+    html = f'<div style="overflow:hidden; margin-bottom:15px;"><h2 style="float:left; margin:0;">{q["title"]} <span style="color:#d9534f;">(+{q["bounty"]}P)</span></h2>{q_delete_btn}</div><div class="card"><pre>{q["content"]}</pre></div><h3>답변</h3>'
+    
     for a in answers:
         style = "border: 2px solid #004b87; background: #f0f7ff;" if a['accepted'] else ""
-        btn = f'<a href="/qna/accept/{a["id"]}" class="btn" style="background:#28a745; font-size:0.8em; margin-top:10px;">채택하기</a>' if q['author_id'] == session.get('user_id') and not q['resolved'] else ""
-        html += f'<div class="card" style="{style}"><b>{a["username"]}</b><p>{a["content"]}</p>{btn}</div>'
+        
+        # 채택하기 버튼
+        accept_btn = f'<a href="/qna/accept/{a["id"]}" class="btn" style="background:#28a745; font-size:0.8em; margin-top:10px; margin-right:5px;">채택하기</a>' if q['author_id'] == session.get('user_id') and not q['resolved'] else ""
+        
+        # 2. 답변 삭제 버튼 (내 답변이고, 아직 채택되지 않았을 때만 노출)
+        a_delete_btn = ""
+        if a['author_id'] == session.get('user_id') and not a['accepted']:
+            a_delete_btn = f'''
+            <form method="post" action="/answers/delete/{a["id"]}" style="display:inline;" onsubmit="return confirm('이 답변을 삭제하시겠습니까?');">
+                <button type="submit" class="btn" style="background:#d9534f; font-size:0.8em; padding:10px 16px; margin-top:10px;">삭제</button>
+            </form>
+            '''
+
+        html += f'<div class="card" style="{style}"><b>{a["username"]}</b><p>{a["content"]}</p>{accept_btn}{a_delete_btn}</div>'
+        
     if 'user_id' in session and q['author_id'] != session['user_id']:
-        html += '<form method="post" class="card"><h4>답변 남기기</h4><textarea name="content" rows="4" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" placeholder="답변을 작성하면 5P를 받습니다."></textarea><br><button class="btn">답변 등록</button></form>'
+        html += '<form method="post" class="card"><h4>답변 남기기</h4><textarea name="content" rows="4" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ddd;" placeholder="답변을 남겨주세요. (최초 1회 참여 시 5P 지급)"></textarea><br><button class="btn">답변 등록</button></form>'
+        
+    html += f'<div style="margin-top:20px;"><a href="/subject/{q["subject"]}/qna" class="btn" style="background:#777;">목록으로 돌아가기</a></div>'
     return render(html)
+    
+@app.route('/qna/delete/<int:q_id>', methods=['POST'])
+def qna_delete(q_id):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    db = get_db(); c = db.cursor()
+    
+    # 질문 정보와 답변 개수 확인
+    c.execute("SELECT * FROM qna WHERE id=%s", (q_id,))
+    q = c.fetchone()
+    c.execute("SELECT COUNT(*) as cnt FROM answers WHERE qna_id=%s", (q_id,))
+    ans_count = c.fetchone()['cnt']
+    
+    # 예외 처리 (권한 없음, 답변 달림)
+    if not q or q['author_id'] != session['user_id']:
+        flash("삭제 권한이 없습니다."); return redirect(url_for('index'))
+    if ans_count > 0:
+        flash("이미 답변이 달린 질문은 삭제할 수 없습니다."); return redirect(url_for('qna_view', q_id=q_id))
+        
+    # 질문 삭제 진행 및 현상금 반환
+    c.execute("UPDATE users SET points = points + %s WHERE id=%s", (q['bounty'], session['user_id']))
+    c.execute("DELETE FROM qna WHERE id=%s", (q_id,))
+    db.commit()
+    
+    flash(f"질문이 삭제되었으며, 걸어두었던 현상금 {q['bounty']}P가 반환되었습니다.")
+    return redirect(url_for('qna_list', sub_code=q['subject']))
+
+@app.route('/answers/delete/<int:a_id>', methods=['POST'])
+def answer_delete(a_id):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    db = get_db(); c = db.cursor()
+    
+    c.execute("SELECT a.*, q.id as q_id FROM answers a JOIN qna q ON a.qna_id = q.id WHERE a.id=%s", (a_id,))
+    a = c.fetchone()
+    
+    # 예외 처리 (권한 없음, 이미 채택됨)
+    if not a or a['author_id'] != session['user_id']:
+        flash("삭제 권한이 없습니다."); return redirect(url_for('index'))
+    if a['accepted']:
+        flash("이미 채택된 답변은 게시판 보존을 위해 삭제할 수 없습니다."); return redirect(url_for('qna_view', q_id=a['q_id']))
+        
+    c.execute("DELETE FROM answers WHERE id=%s", (a_id,))
+    db.commit()
+    
+    flash("답변이 삭제되었습니다.")
+    return redirect(url_for('qna_view', q_id=a['q_id']))
 
 @app.route('/qna/accept/<int:a_id>')
 def qna_accept(a_id):
