@@ -66,7 +66,7 @@ def material_list(sub_code):
     db = get_db(); c = db.cursor()
     c.execute("SELECT m.*, u.username FROM materials m JOIN users u ON m.author_id = u.id WHERE m.subject=%s ORDER BY m.id DESC", (sub_code,))
     mats = c.fetchall()
-    return render_template('material_list.html', sub_code=sub_code, mats=mats)
+    return render_template('material/list.html', sub_code=sub_code, mats=mats)
 
 @app.route('/subject/<sub_code>/materials/upload', methods=['GET', 'POST'])
 def material_upload(sub_code):
@@ -84,7 +84,7 @@ def material_upload(sub_code):
         c.execute("UPDATE users SET points = points + 20 WHERE id=%s", (session['user_id'],))
         db.commit()
         flash("자료가 등록되었습니다. 보상으로 20P가 지급되었습니다!"); return redirect(url_for('material_list', sub_code=sub_code))
-    return render_template('material_upload.html', sub_code=sub_code)
+    return render_template('material/upload.html', sub_code=sub_code)
 
 @app.route('/materials/view/<int:m_id>')
 def material_view(m_id):
@@ -111,7 +111,7 @@ def material_view(m_id):
     for f in files:
         f['is_image'] = f['file_url'].lower().endswith(('jpg', 'jpeg', 'png', 'gif'))
             
-    return render_template('material_view.html', m=m, files=files)
+    return render_template('material/view.html', m=m, files=files)
 
 # 삭제 메소드
 @app.route('/materials/delete/<int:m_id>', methods=['POST'])
@@ -142,7 +142,7 @@ def qna_list(sub_code):
     db = get_db(); c = db.cursor()
     c.execute("SELECT q.*, u.username FROM qna q JOIN users u ON q.author_id = u.id WHERE q.subject=%s ORDER BY q.id DESC", (sub_code,))
     qs = c.fetchall()
-    return render_template('qna_list.html', sub_code=sub_code, qs=qs)
+    return render_template('qna/list.html', sub_code=sub_code, qs=qs)
 
 @app.route('/subject/<sub_code>/qna/ask', methods=['GET', 'POST'])
 def qna_ask(sub_code):
@@ -155,7 +155,7 @@ def qna_ask(sub_code):
         c.execute("INSERT INTO qna (subject, title, content, bounty, author_id) VALUES (%s, %s, %s, %s, %s)", (sub_code, request.form['title'], request.form['content'], bounty, session['user_id']))
         c.execute("UPDATE users SET points = points - %s WHERE id=%s", (bounty, session['user_id']))
         db.commit(); return redirect(url_for('qna_list', sub_code=sub_code))
-    return render_template('qna_ask.html', sub_code=sub_code)
+    return render_template('qna/ask.html', sub_code=sub_code)
 
 @app.route('/qna/view/<int:q_id>', methods=['GET', 'POST'])
 def qna_view(q_id):
@@ -181,7 +181,7 @@ def qna_view(q_id):
     c.execute("SELECT q.*, u.username FROM qna q JOIN users u ON q.author_id = u.id WHERE q.id=%s", (q_id,)); q = c.fetchone()
     c.execute("SELECT a.*, u.username FROM answers a JOIN users u ON a.author_id = u.id WHERE a.qna_id=%s ORDER BY a.id ASC", (q_id,)); answers = c.fetchall()
     
-    return render_template('qna_view.html', q=q, answers=answers)
+    return render_template('qna/view.html', q=q, answers=answers)
     
 @app.route('/qna/delete/<int:q_id>', methods=['POST'])
 def qna_delete(q_id):

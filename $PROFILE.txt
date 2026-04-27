@@ -1,0 +1,4 @@
+function study {
+    cd "C:\Workspace\StudyChosun"
+    .\venv\Scripts\Activate.ps1
+}
