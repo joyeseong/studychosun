@@ -13,7 +13,7 @@
 {% for a in answers %}
     {% set style = "border: 2px solid #004b87; background: #f0f7ff;" if a.accepted else "" %}
     <div class="card" style="{{ style }}">
-        <b>{{ a.username }}</b><p>{{ a.content }}</p>
+        <b>{{ a.name }}</b><p>{{ a.content }}</p>
         {% if q.author_id == session.user_id and not q.resolved %}
             <a href="/qna/accept/{{ a.id }}" class="btn" style="background:#28a745; font-size:0.8em; margin-top:10px; margin-right:5px;">채택하기</a>
         {% endif %}

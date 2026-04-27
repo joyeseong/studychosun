@@ -30,7 +30,7 @@
         <a href="/">홈 (과목선택)</a>
         <div>
         {% if session.user_id %}
-            <span style="margin-right:15px;"><b>{{ session.username }}</b>님 ({{ points }} P)</span>
+            <span style="margin-right:15px;"><b>{{ session.name }}</b>님 ({{ points }} P)</span>
             <a href="/logout" style="color:#d9534f;">로그아웃</a>
         {% else %}
             <a href="/login">로그인 / 회원가입</a>

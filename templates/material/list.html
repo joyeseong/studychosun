@@ -6,7 +6,7 @@
 {% for m in mats %}
     <div class="card">
         <h3>{{ m.title }}</h3>
-        <p style="color:#777;">작성자: {{ m.username }} | 열람료: 10P</p>
+        <p style="color:#777;">작성자: {{ m.name }} | 열람료: 10P</p>
         <a href="/materials/view/{{ m.id }}" class="btn">자료 열람하기</a>
     </div>
 {% endfor %}

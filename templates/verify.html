@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:400px; margin:0 auto; text-align:center;">
+    <div class="card">
+        <h2>이메일 인증</h2>
+        <p><b>{{ email }}</b> (으)로<br>6자리 인증번호를 발송했습니다.</p>
+        <form method="post" style="margin-top:20px;">
+            <input type="text" name="code" placeholder="인증번호 6자리 입력" style="width:80%; padding:10px; text-align:center; font-size:1.2em; letter-spacing:3px; margin-bottom:20px;" required><br>
+            <button type="submit" class="btn" style="width:80%; background:#28a745;">가입 완료하기</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

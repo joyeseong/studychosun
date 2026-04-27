@@ -1,12 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="max-width:400px; margin:0 auto;">
-    <h2>로그인 / 회원가입</h2>
-    <form method="post" class="card">
-        아이디: <input type="text" name="username" style="width:90%; padding:8px; margin-bottom:10px;" required><br>
-        비밀번호: <input type="password" name="password" style="width:90%; padding:8px; margin-bottom:20px;" required><br>
-        <button type="submit" name="action" value="login" class="btn" style="width:100%; margin-bottom:10px;">로그인</button>
-        <button type="submit" name="action" value="register" class="btn" style="width:100%; background:#28a745;">회원가입</button>
-    </form>
+<div style="display:flex; justify-content:center; gap:30px; flex-wrap:wrap;">
+    <div class="card" style="width:350px;">
+        <h3 style="margin-top:0;">로그인</h3>
+        <form method="post">
+            학번: <input type="text" name="student_id" style="width:100%; padding:8px; margin-bottom:10px;" required><br>
+            비밀번호: <input type="password" name="password" style="width:100%; padding:8px; margin-bottom:20px;" required><br>
+            <button type="submit" name="action" value="login" class="btn" style="width:100%;">로그인</button>
+        </form>
+    </div>
+
+    <div class="card" style="width:350px; border-top: 4px solid #28a745;">
+        <h3 style="margin-top:0;">신규 회원가입</h3>
+        <form method="post">
+            실명: <input type="text" name="name" style="width:100%; padding:8px; margin-bottom:10px;" required><br>
+            학번: <input type="text" name="student_id" placeholder="예: 20211234" style="width:100%; padding:8px; margin-bottom:10px;" required><br>
+            학교 이메일: <input type="email" name="email" placeholder="반드시 @chosun.ac.kr 또는 @chosun.kr 입력" style="width:100%; padding:8px; margin-bottom:10px;" required><br>
+            비밀번호: <input type="password" name="password" style="width:100%; padding:8px; margin-bottom:20px;" required><br>
+            <button type="submit" name="action" value="register" class="btn" style="width:100%; background:#28a745;">인증번호 이메일로 받기</button>
+        </form>
+    </div>
 </div>
 {% endblock %}

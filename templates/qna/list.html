@@ -10,7 +10,7 @@
             <span style="color:#d9534f; font-size:0.8em;">(+{{ q.bounty }}P)</span>
         </h3>
         <p style="color:#777;">
-            {% if q.resolved %}채택완료! {% else %}답변 대기중{% endif %} | 작성자: {{ q.username }}
+            {% if q.resolved %}채택완료! {% else %}답변 대기중{% endif %} | 작성자: {{ q.name }}
         </p>
     </div>
 {% endfor %}
