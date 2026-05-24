@@ -95,41 +95,40 @@ def material_upload(sub_code):
         flash("자료가 등록되었습니다. 보상으로 20P가 지급되었습니다!"); return redirect(url_for('material_list', sub_code=sub_code))
     return render_template('material/upload.html', sub_code=sub_code)
 
-@app.route('/qna/view/<int:q_id>', methods=['GET', 'POST'])
-def qna_view(q_id):
+@app.route('/materials/view/<int:m_id>')
+def material_view(m_id):
+    if 'user_id' not in session: return redirect(url_for('login'))
     db = get_db(); c = db.cursor()
+    c.execute("SELECT * FROM material_views WHERE material_id=%s AND viewer_id=%s", (m_id, session['user_id']))
+    already = c.fetchone()
+    c.execute("SELECT m.*, u.name, u.points as author_points FROM materials m JOIN users u ON m.author_id = u.id WHERE m.id=%s", (m_id,))
+    m = c.fetchone()
     
-    if request.method == 'POST' and 'user_id' in session:
-        # 중복 답변 체크 (이 질문에 이미 답변을 단 적이 있는지 확인)
-        c.execute("SELECT COUNT(*) as cnt FROM answers WHERE qna_id=%s AND author_id=%s", (q_id, session['user_id']))
-        already_answered = c.fetchone()['cnt'] > 0
+    if not already and m['author_id'] != session['user_id']:
+        c.execute("SELECT points FROM users WHERE id=%s", (session['user_id'],))
+        if c.fetchone()['points'] < 10: flash("포인트가 부족합니다."); return redirect(url_for('index'))
+        c.execute("UPDATE users SET points = points - 10 WHERE id=%s", (session['user_id'],))
+        c.execute("UPDATE users SET points = points + 5 WHERE id=%s", (m['author_id'],))
+        c.execute("INSERT INTO material_views (material_id, viewer_id) VALUES (%s, %s)", (m_id, session['user_id']))
         
-        c.execute("INSERT INTO answers (qna_id, content, author_id) VALUES (%s, %s, %s)", (q_id, request.form['content'], session['user_id']))
+        # 🔔 [알림 추가] 자료 작성자에게 수익 알림 생성
+        noti_msg = f"올리신 자료 '{m['title'][:10]}...'를 누군가 열람하여 5P가 적립되었습니다."
+        noti_link = f"/materials/view/{m_id}"
+        c.execute("INSERT INTO notifications (user_id, message, link) VALUES (%s, %s, %s)", 
+                  (m['author_id'], noti_msg, noti_link))
         
-        # 첫 답변일 때만 포인트 지급
-        if not already_answered:
-            c.execute("UPDATE users SET points = points + 5 WHERE id=%s", (session['user_id'],))
-            flash("답변 등록 완료! 첫 답변 보상 5P가 지급되었습니다.")
-        else:
-            flash("답변이 추가로 등록되었습니다. (참여 보상은 질문당 1회만 지급됩니다)")
-            
-        # 🔔 [알림 기능 추가] 질문 작성자에게 알림 생성
-        c.execute("SELECT author_id, title FROM qna WHERE id=%s", (q_id,))
-        q_info = c.fetchone()
-        if q_info and q_info['author_id'] != session['user_id']: # 자문자답이 아닐 때만 알림 발송
-            noti_msg = f"내 질문 '{q_info['title'][:10]}...'에 새로운 답변이 등록되었습니다."
-            noti_link = f"/qna/view/{q_id}"
-            c.execute("INSERT INTO notifications (user_id, message, link) VALUES (%s, %s, %s)", 
-                      (q_info['author_id'], noti_msg, noti_link))
-            
         db.commit()
-        return redirect(request.url)
-
-    c.execute("SELECT q.*, u.name FROM qna q JOIN users u ON q.author_id = u.id WHERE q.id=%s", (q_id,)); q = c.fetchone()
-    c.execute("SELECT a.*, u.name FROM answers a JOIN users u ON a.author_id = u.id WHERE a.qna_id=%s ORDER BY a.id ASC", (q_id,)); answers = c.fetchall()
+        flash("10P를 소모하여 자료를 열람합니다. 작성자에게 5P가 보상으로 지급되었습니다.")
+        
+    c.execute("SELECT * FROM material_files WHERE material_id=%s", (m_id,))
+    files = c.fetchall()
     
-    return render_template('qna/view.html', q=q, answers=answers)
-
+    # 이미지 여부 판별 로직 추가 (프론트엔드 노출용)
+    for f in files:
+        f['is_image'] = f['file_url'].lower().endswith(('jpg', 'jpeg', 'png', 'gif'))
+            
+    return render_template('material/view.html', m=m, files=files)
+    
 # 삭제 메소드
 @app.route('/materials/delete/<int:m_id>', methods=['POST'])
 def material_delete(m_id):
