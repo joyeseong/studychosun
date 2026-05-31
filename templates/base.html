@@ -31,6 +31,16 @@
         <div>
         {% if session.user_id %}
             <span style="margin-right:15px;"><b>{{ session.name }}</b>님 ({{ points }} P)</span>
+            
+            <a href="/notifications" style="position: relative; margin-right: 20px; text-decoration: none; font-size: 1.1em;">
+                🔔
+                {% if unread_cnt > 0 %}
+                    <span style="background: #d9534f; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; position: absolute; top: -8px; right: -12px; font-weight: bold;">
+                        {{ unread_cnt }}
+                    </span>
+                {% endif %}
+            </a>
+
             <a href="/logout" style="color:#d9534f;">로그아웃</a>
         {% else %}
             <a href="/login">로그인 / 회원가입</a>

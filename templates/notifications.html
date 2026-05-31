@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="color: #004b87; margin-bottom: 20px;">🔔 나의 알림 센터</h2>
+
+{% if notis %}
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        {% for n in notis %}
+            <div class="card" style="margin-bottom: 0; padding: 15px 20px; border-left: 5px solid {% if n.is_read == 0 %}#d9534f{% else %}#ddd{% endif %}; background: {% if n.is_read == 0 %}#fff{% else %}#f9f9f9{% endif %}; transition: background 0.2s;">
+                
+                <a href="/notifications/click/{{ n.id }}" style="text-decoration: none; color: #333; display: block;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p style="margin: 0; font-size: 1.1em; font-weight: {% if n.is_read == 0 %}bold{% else %}normal{% endif %}; color: {% if n.is_read == 0 %}#000{% else %}#777{% endif %};">
+                            {{ n.message }}
+                        </p>
+                        <small style="color: #999; white-space: nowrap; margin-left: 15px;">
+                            {{ n.created_at }}
+                        </small>
+                    </div>
+                </a>
+                
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 50px 20px; color: #777;">
+        <h3>도착한 알림이 없습니다.</h3>
+        <p>질문을 올리거나 자료를 공유하고 새로운 소식을 받아보세요!</p>
+        <a href="/" class="btn" style="margin-top: 15px;">홈으로 돌아가기</a>
+    </div>
+{% endif %}
+
+{% endblock %}
