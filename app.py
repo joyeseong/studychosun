@@ -368,7 +368,7 @@ def mypage():
         flash("회원 정보가 성공적으로 수정되었습니다.")
         return redirect(url_for('mypage'))
         
-    c.execute("SELECT student_id, name, email, points, created_at, password FROM users WHERE id=%s", (session['user_id'],))
+    c.execute("SELECT student_id, name, email, points, password FROM users WHERE id=%s", (session['user_id'],))
     user_info = c.fetchone()
     
     return render_template('mypage.html', user=user_info)
