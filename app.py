@@ -352,6 +352,27 @@ def verify_email():
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('index'))
 
+@app.route('/mypage', methods=['GET', 'POST'])
+def mypage():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    db = get_db(); c = db.cursor()
+    
+    if request.method == 'POST':
+        new_name = request.form.get('name')
+        new_password = request.form.get('password')
+        
+        c.execute("UPDATE users SET name=%s, password=%s WHERE id=%s", (new_name, new_password, session['user_id']))
+        db.commit()
+        
+        session['name'] = new_name 
+        flash("회원 정보가 성공적으로 수정되었습니다.")
+        return redirect(url_for('mypage'))
+        
+    c.execute("SELECT student_id, name, email, points, created_at, password FROM users WHERE id=%s", (session['user_id'],))
+    user_info = c.fetchone()
+    
+    return render_template('mypage.html', user=user_info)
+
 @app.route('/notifications')
 def notification_list():
     if 'user_id' not in session: return redirect(url_for('login'))
