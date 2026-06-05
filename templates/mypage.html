@@ -4,11 +4,9 @@
 
 <div class="card" style="max-width:700px; margin:0 auto;">
 
-    <h2 style="margin-top:0; color:#004b87;">
-        마이페이지
-    </h2>
+    <h2 style="color:#004b87;">마이페이지</h2>
 
-    <form method="post">
+    <form method="post" action="/mypage">
 
         <div style="margin-bottom:15px;">
             <b>보유 포인트</b><br>
@@ -32,20 +30,12 @@
 
         <div style="margin-bottom:15px;">
             <b>이름</b><br>
-            <input type="text"
-                   name="name"
-                   value="{{ user.name }}"
-                   style="width:100%; padding:10px;"
-                   required>
+            <input type="text" name="name" value="{{ user.name }}" required>
         </div>
 
-        <div style="margin-bottom:20px;">
+        <div style="margin-bottom:15px;">
             <b>비밀번호</b><br>
-            <input type="password"
-                   name="password"
-                   value="{{ user.password }}"
-                   style="width:100%; padding:10px;"
-                   required>
+            <input type="password" name="password" value="{{ user.password }}" required>
         </div>
 
         <button type="submit" class="btn">
