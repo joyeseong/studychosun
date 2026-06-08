@@ -121,8 +121,8 @@ def material_view(m_id):
         flash("10P를 소모하여 자료를 열람합니다. 작성자에게 5P가 보상으로 지급되었습니다.")
         
     c.execute("SELECT * FROM material_files WHERE material_id=%s", (m_id,))
-    files = c.fetchall()
-    
+    files = [dict(f) for f in c.fetchall()]  # DictRow(읽기전용) → 일반 dict로 변환
+
     # 이미지 여부 판별 로직 추가 (프론트엔드 노출용)
     for f in files:
         f['is_image'] = f['file_url'].lower().endswith(('jpg', 'jpeg', 'png', 'gif'))
